@@ -1,34 +1,65 @@
-import { useState } from "react";
+// Updated styling version will be applied here. Starting with user's original code.
+
+import { useState, useEffect } from "react";
 import { marked } from "marked";
 import { Image, FileText, Trash2, Eye, X } from "lucide-react";
-import { useEffect } from "react";
-
+import { useNavigate } from "react-router-dom";
 
 export default function MedicalDocManager() {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [previewDoc, setPreviewDoc] = useState(null);
+  const navigate = useNavigate();
 
-
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+    }
+  }, [navigate]);
 
   useEffect(() => {
     const fetchDocs = async () => {
       try {
-        const response = await fetch("http://localhost:5000/documents");
-        const data = await response.json();
-        setDocuments(data);
+        const token = localStorage.getItem("token");
+        const res = await fetch("http://localhost:5000/documents", {
+          headers: {
+            Authorization: "Bearer " + token,
+          },
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          setDocuments(data);
+        }
       } catch (err) {
-        console.error("Failed to load documents:", err);
+        console.error("Failed to fetch docs", err);
       }
     };
 
     fetchDocs();
   }, []);
 
+  const deleteDocument = async (id) => {
+    try {
+      const res = await fetch(`http://localhost:5000/documents/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: "Bearer " + localStorage.getItem("token"),
+        },
+      });
 
-  const deleteDocument = (id) => {
-    setDocuments((prev) => prev.filter((doc) => doc.id !== id));
+      if (!res.ok) {
+        throw new Error("Failed to delete document");
+      }
+
+      setDocuments((prev) => prev.filter((doc) => doc._id !== id));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete document.");
+    }
   };
 
   const fileToBase64 = (file) => {
@@ -57,11 +88,9 @@ export default function MedicalDocManager() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: "Bearer " + localStorage.getItem("token"),
         },
-        body: JSON.stringify({
-          base64: base64,
-          fileType: file.type,
-        }),
+        body: JSON.stringify({ base64: base64, fileType: file.type }),
       });
 
       const data = await response.json();
@@ -70,16 +99,7 @@ export default function MedicalDocManager() {
         throw new Error(data.error || "AI summarization failed");
       }
 
-      const newDoc = {
-        id: Date.now(),
-        name: file.name,
-        type: file.type,
-        uploadedAt: new Date().toLocaleString(),
-        summary: data.summary,
-        fileData: `data:${file.type};base64,${base64}`,
-      };
-
-      setDocuments((prev) => [newDoc, ...prev]);
+      setDocuments((prev) => [data, ...prev]);
     } catch (err) {
       console.error(err);
       setError("Failed to summarize document. Try another file.");
@@ -89,116 +109,128 @@ export default function MedicalDocManager() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
+    <div
+      className="min-h-screen p-6 bg-cover bg-center flex justify-center"
+      style={{
+        backgroundImage:
+          "url('https://i.pinimg.com/1200x/a8/51/9c/a8519c8b104ef1f944063a0fcc0d59da.jpg')",
+      }}
+    >
+      <div className="max-w-5xl mx-auto w-full bg-white/60 backdrop-blur-xl p-8 rounded-3xl shadow-2xl border border-yellow-200">
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={() => {
+              localStorage.removeItem("token");
+              navigate("/login");
+            }}
+            className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 shadow-md transition"
+          >
+            Logout
+          </button>
+        </div>
+
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            Medical Document Hub
+          <h1 className="text-5xl font-extrabold text-yellow-800 drop-shadow-md">
+            MediVault
           </h1>
-          <p className="text-gray-600">
+          <p className="text-yellow-700 mt-2 text-lg">
             Upload your medical documents and view summaries
           </p>
         </div>
 
-        {/* Upload Section */}
-        <div className="bg-white rounded-xl shadow p-8 mb-8">
-          <p className="text-gray-700 font-medium mb-2">
+        <div className="bg-yellow-50 rounded-2xl shadow-inner p-8 border border-yellow-200">
+          <p className="text-yellow-800 font-semibold mb-3 text-lg">
             Upload Medical Document
           </p>
 
-          <label className="block w-full h-40 border-2 border-dashed border-blue-300 rounded-lg cursor-pointer hover:bg-blue-50 transition">
-            <div className="flex flex-col items-center justify-center h-full">
-              <p className="text-blue-600 font-semibold">Click to Upload</p>
-              <p className="text-sm text-gray-500">PDF or Image</p>
+          <label className="block w-full h-40 border-2 border-dashed border-yellow-400 rounded-xl cursor-pointer hover:bg-yellow-100 transition flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-yellow-700 font-bold text-lg">Click to Upload</p>
+              <p className="text-sm text-yellow-600">PDF or Image</p>
             </div>
             <input type="file" className="hidden" onChange={handleFileUpload} />
           </label>
 
-          {loading && (
-            <p className="mt-2 text-blue-600">Analyzing document...</p>
-          )}
-
-          {error && <p className="text-red-500 mt-2">{error}</p>}
+          {loading && <p className="mt-3 text-yellow-700">Analyzing document...</p>}
+          {error && <p className="text-red-500 mt-3">{error}</p>}
         </div>
 
-        {/* Documents List */}
-        <div className="space-y-4 mt-8">
+        <div className="space-y-6 mt-10">
           {documents.length === 0 ? (
-            <div className="bg-white rounded-xl shadow p-10 text-center text-gray-500">
+            <div className="bg-yellow-50 rounded-xl shadow p-10 text-center text-yellow-600 border border-yellow-200">
               No documents uploaded yet.
             </div>
           ) : (
             documents.map((doc) => (
               <div
-                key={doc.id}
-                className="bg-white rounded-xl shadow p-6 hover:shadow-lg transition"
+                key={doc._id}
+                className="bg-white/80 rounded-2xl shadow-lg p-6 border border-yellow-200 hover:shadow-xl transition backdrop-blur"
               >
-                {/* Header + Delete */}
                 <div className="flex justify-between items-start">
-                  <h3 className="font-semibold text-gray-800">{doc.name}</h3>
+                  <h3 className="font-bold text-yellow-800 text-lg">{doc.name}</h3>
                   <button
-                    onClick={() => deleteDocument(doc.id)}
+                    onClick={() => deleteDocument(doc._id)}
                     className="text-red-500 hover:text-red-700 transition"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
 
-                {/* File Preview Area */}
                 <div
-                  className="mt-4 bg-gray-100 rounded-lg p-3 flex items-center justify-center cursor-pointer"
+                  className="mt-4 bg-yellow-100 rounded-lg p-3 flex items-center justify-center cursor-pointer border border-yellow-300"
                   onClick={() => setPreviewDoc(doc)}
                 >
                   {doc.type.startsWith("image/") ? (
-                    <img
-                      src={doc.fileData}
-                      className="h-40 object-contain"
-                      alt="document-preview"
-                    />
+                    <img src={doc.fileData} className="h-40 object-contain rounded-md" />
                   ) : (
-                    <div className="flex flex-col items-center text-gray-600">
+                    <div className="flex flex-col items-center text-yellow-700">
                       <FileText className="w-10 h-10 mb-2" />
                       <span>View PDF</span>
                     </div>
                   )}
                 </div>
-                {/* Summary */}
+
                 <div
-                  className="text-gray-700 text-sm mt-3 leading-relaxed"
-                  dangerouslySetInnerHTML={{
-                    __html: marked.parse(doc.summary),
-                  }}
+                  className="text-yellow-900 text-sm mt-3 leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: marked.parse(doc.summary) }}
+                />
+                <div
+                  className="text-yellow-900 text-sm mt-3 leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: marked.parse(doc.uploadedAt) }}
                 />
               </div>
             ))
           )}
         </div>
 
-        {/* Preview Modal */}
         {previewDoc && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4"
-          onClick={() => setPreviewDoc(null)}
-        >
           <div
-            className="relative bg-white rounded-lg max-w-4xl w-full max-h-full overflow-auto"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50"
+            onClick={() => setPreviewDoc(null)}
           >
-            <button
-              onClick={() => setPreviewDoc(null)}
-              className="absolute top-3 right-3 bg-red-500 text-white rounded-full p-2"
+            <div
+              className="relative bg-white rounded-2xl max-w-4xl w-full max-h-full overflow-auto shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
             >
-              <X className="w-5 h-5" />
-            </button>
+              <button
+                onClick={() => setPreviewDoc(null)}
+                className="absolute top-3 right-3 bg-red-500 text-white rounded-full p-2 shadow-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
 
-            {previewDoc.type.startsWith("image/") ? (
-              <img src={previewDoc.fileData} className="w-full h-auto" />
-            ) : (
-              <iframe src={previewDoc.fileData} className="w-full h-[80vh]" title="PDF Preview" />
-            )}
+              {previewDoc.type.startsWith("image/") ? (
+                <img src={previewDoc.fileData} className="w-full h-auto rounded-b-2xl" />
+              ) : (
+                <iframe
+                  src={previewDoc.fileData}
+                  className="w-full h-[80vh] rounded-b-2xl"
+                  title="PDF Preview"
+                />
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   );
