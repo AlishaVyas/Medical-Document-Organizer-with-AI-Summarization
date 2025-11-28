@@ -164,5 +164,5 @@ app.delete("/documents/:id", auth, async (req, res) => {
  * START SERVER
  ******************************************************************/
 app.listen(5000, () => {
-  console.log("Server running on http://localhost:5000");
+  console.log("Server running on http://backend:5000");
 });

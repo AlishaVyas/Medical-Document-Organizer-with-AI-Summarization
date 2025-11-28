@@ -1,7 +1,9 @@
+import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import MedicalDocManager from "./MedicalDocManager";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+
 
 function App() {
   return (

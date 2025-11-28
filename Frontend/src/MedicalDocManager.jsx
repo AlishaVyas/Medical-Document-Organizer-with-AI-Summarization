@@ -1,6 +1,5 @@
 // Updated styling version will be applied here. Starting with user's original code.
-
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { marked } from "marked";
 import { Image, FileText, Trash2, Eye, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -143,7 +142,7 @@ export default function MedicalDocManager() {
             Upload Medical Document
           </p>
 
-          <label className="block w-full h-40 border-2 border-dashed border-yellow-400 rounded-xl cursor-pointer hover:bg-yellow-100 transition flex items-center justify-center">
+          <label className=" w-full h-40 border-2 border-dashed border-yellow-400 rounded-xl cursor-pointer hover:bg-yellow-100 transition flex items-center justify-center">
             <div className="text-center">
               <p className="text-yellow-700 font-bold text-lg">Click to Upload</p>
               <p className="text-sm text-yellow-600">PDF or Image</p>
